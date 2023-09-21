@@ -2,8 +2,11 @@
 title: "Simulation of the Neutral Model"
 author: "Eric Marcon"
 date: "`r Sys.Date()`"
-output: html_document
 bibliography: references.bib
+output: 
+  html_document:
+    toc: true
+    toc_float: true
 ---
 
 ```{r setup, include=FALSE}
@@ -21,7 +24,7 @@ InstallPackages(c("bookdown", "formatR", "tidyverse"))
 # Specific packages
 InstallPackages(c("cli", "entropart", "dbmss", "vegan"))
 # knitr options
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE, message = FALSE)
 # Load the tidyverse
 library("tidyverse")
 ```
@@ -62,7 +65,7 @@ alpha <- 754
   n_species
 ```
 
-Its estimated number of species is `r n_species`.
+Its estimated number of species is `r format(n_species, scientific = FALSE)`.
 
 We'll draw a random log-series distribution.
 
@@ -98,7 +101,7 @@ LSabundance <- function(N, alpha) {
 }
 ```
 
-Simulating the abundance of the `r n_species` of Amazonia takes a few hours.
+Simulating the abundance of the `r format(n_species, scientific = FALSE)` of Amazonia takes a few hours.
 The result is saved on disk.
 If the file can be found, it is read instead of running the simulation from scratch.
 
