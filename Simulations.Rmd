@@ -205,7 +205,7 @@ names(c_abundances) <- names(mc_abundances)
 library("entropart")
 # Eliminate species with 0 individual
 c_abundances[c_abundances > 0] %>% 
-  # Declare an vector of abundances
+  # Declare a vector of abundances
   as.AbdVector() ->
   c_abundances
 # Show the RAC
@@ -235,7 +235,10 @@ marks(c_ppp) <- marks
 c_wmppp <- as.wmppp(c_ppp)
 # Set the factor levels of the point types identical to those of the metacommunity
 # so that species of the metacommunity can be used in the local community
-c_wmppp$marks$PointType <- factor(c_wmppp$marks$PointType, levels = names(mc_abundances))
+c_wmppp$marks$PointType <- factor(
+  c_wmppp$marks$PointType, 
+  levels = names(mc_abundances)
+)
 # Map the point pattern
 autoplot(c_wmppp)
 ```
@@ -256,7 +259,7 @@ evolve_drift <- function(community, show = FALSE) {
   survivors_sp <- community$marks$PointType[-focus_tree]
   # Draw the species of the new tree
   community$marks$PointType[focus_tree] <- 
-    survivors_sp[sample(length(survivors_sp), size = 1)]
+    survivors_sp[sample(seq_along(survivors_sp), size = 1)]
   if (show) {
     # Copy the community
     community_to_plot <- community
@@ -319,6 +322,13 @@ The parameter `m` is the probability for that to happen.
 The evolution function is rewritten.
 
 ```{r}
+#' One-step evolution of a community with migration
+#'
+#' @param community A wmppp object (package dbmss) where points are trees.
+#' @param metacommunity A named vector of abundances or probability that describes the metacommunity.
+#' @param m The migration parameter, that is the probability for a dead tree to be replaced by an immigrant species.
+#'
+#' @return A wmppp object with the modified community.
 evolve_migrate <- function(community, metacommunity, m = 0) {
   # Choose a tree
   focus_tree <- sample(seq_len(community$n), size = 1)
@@ -329,7 +339,7 @@ evolve_migrate <- function(community, metacommunity, m = 0) {
   survivors_sp <- community$marks$PointType[-focus_tree]
   # Draw the species of the new tree
   community$marks$PointType[focus_tree] <- 
-    survivors_sp[sample(length(survivors_sp), size = 1)]
+    survivors_sp[sample(seq_along(survivors_sp), size = 1)]
   } else {
     # Migration : Draw the species of the new tree in the metacommunity
     community$marks$PointType[focus_tree] <- 
