@@ -78,7 +78,7 @@ We'll draw a random log-series distribution.
 #' @return The number of individuals of a species
 LSabundance <- function(N, alpha) {
   # adapted from Dan Lunn, http://www.stats.ox.ac.uk/~dlunn/BS1_05/BS1_Rcode.pdf
-  # Fisher's x is log-series 1-theta
+  # Fisher's x
   x <- N / (N + alpha)
   # Draw a random number between 0 and 1
   u <- stats::runif(1)
