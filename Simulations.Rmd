@@ -393,7 +393,7 @@ the_community %>%
   autoplot(Distribution = "lnorm")
 ```
 
-# Exercices
+# Exercises
 
 Re-use the code above to run a few experiments about drift time and the shape of the local community.
 
