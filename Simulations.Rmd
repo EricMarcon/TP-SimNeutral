@@ -364,6 +364,15 @@ the_community %>%
   autoplot(Distribution = "lnorm")
 ```
 
+The average number of species can be calculated from the data, after eliminating the burn-in steps (i.e. before the pattern is stable).
+
+```{r}
+mean(richness_time[10000:drift_time])
+```
+The equation for the expected number of species is in @Etienne2007 [eq. 4] but it requires knowing the size of the metacommunity.
+
+
+
 # Exercises
 
 Re-use the code above to run a few experiments about drift time and the shape of the local community.
