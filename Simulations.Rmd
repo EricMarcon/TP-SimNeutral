@@ -43,9 +43,10 @@ To build the names, we use this code:
 ```{r}
 # LETTERS is the vector of capital letters A:Z
 # outer() combines the first two args by FUN
-outer(LETTERS, LETTERS, FUN = paste0) %>% 
+LETTERS %>% 
+  outer(LETTERS, FUN = paste0) %>% 
   # add a third letter
-  outer(LETTERS, paste0) ->
+  outer(LETTERS, FUN = paste0) ->
   species_names
 ```
 
