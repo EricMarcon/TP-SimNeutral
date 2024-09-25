@@ -307,9 +307,9 @@ evolve_migrate <- function(community, metacommunity, m = 0) {
   u <- runif(1)
   if (u > m) {
     # Local parent: Species of the survivors
-  survivors_sp <- community$marks$PointType[-focus_tree]
-  # Draw the species of the new tree
-  community$marks$PointType[focus_tree] <- 
+    survivors_sp <- community$marks$PointType[-focus_tree]
+    # Draw the species of the new tree
+    community$marks$PointType[focus_tree] <- 
     survivors_sp[sample(seq_along(survivors_sp), size = 1)]
   } else {
     # Migration : Draw the species of the new tree in the metacommunity
