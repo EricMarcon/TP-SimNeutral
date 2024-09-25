@@ -129,7 +129,7 @@ mc_size <- 1E9
 # theta is also Fisher's alpha
 alpha <- 50
 # Number of species (Fisher, 1943)
--alpha * log(alpha / (mc_size + alpha)) %>% 
+(-alpha * log(alpha / (mc_size + alpha))) %>% 
   # integer needed
   as.integer() -> 
   n_species
