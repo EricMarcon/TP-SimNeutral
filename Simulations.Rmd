@@ -175,8 +175,10 @@ rmultinom(1, size = c_size, prob = mc_abundances) %>%
 # Give the species a name
 names(c_abundances) <- names(mc_abundances)
 library("entropart")
-# Eliminate species with 0 individual
-c_abundances[c_abundances > 0] %>% 
+# Clean-up the data
+c_abundances %>% 
+  # Eliminate species with 0 individual
+  subset(c_abundances > 0) %>% 
   # Declare a vector of abundances
   as.AbdVector() ->
   c_abundances
@@ -207,8 +209,8 @@ marks(c_ppp) <- marks
 c_wmppp <- as.wmppp(c_ppp)
 # Set the factor levels of the point types identical to those of the metacommunity
 # so that species of the metacommunity can be used in the local community
-c_wmppp$marks$PointType <- factor(
-  c_wmppp$marks$PointType, 
+marks(c_wmppp)$PointType <- factor(
+  marks(c_wmppp)$PointType, 
   levels = names(mc_abundances)
 )
 # Map the point pattern
@@ -229,15 +231,15 @@ evolve_drift <- function(community, show = FALSE) {
   # Choose a tree
   focus_tree <- sample(seq_len(community$n), size = 1)
   # Species of the survivors
-  survivors_sp <- community$marks$PointType[-focus_tree]
+  survivors_sp <- marks(community)$PointType[-focus_tree]
   # Draw the species of the new tree
-  community$marks$PointType[focus_tree] <- 
+  marks(community)$PointType[focus_tree] <- 
     survivors_sp[sample(seq_along(survivors_sp), size = 1)]
   if (show) {
     # Copy the community
     community_to_plot <- community
     # Increase the size of the modified tree
-    community_to_plot$marks$PointWeight[focus_tree] <- 2
+    marks(community_to_plot)$PointWeight[focus_tree] <- 2
     # Plot the community (print is mandatory inside a function)
     print(autoplot(community_to_plot))
   }
@@ -257,7 +259,7 @@ library("cli")
 # Copy the community to modify it
 the_community <- c_wmppp
 # Number of species
-richness <- length(unique(the_community$marks$PointType))
+richness <- length(unique(marks(the_community)$PointType))
 # Prepare a long vector to save the richness along time
 richness_time <- numeric(1E6)
 # Count the steps
@@ -269,7 +271,7 @@ while (richness > 1) {
   # Replace a tree
   the_community <- evolve_drift(the_community)
   # Update the richness
-  richness <- length(unique(the_community$marks$PointType))
+  richness <- length(unique(marks(the_community)$PointType))
   # Save it
   richness_time[step] <- richness
   # Show the progress
@@ -309,13 +311,13 @@ evolve_migrate <- function(community, metacommunity, m = 0) {
   u <- runif(1)
   if (u > m) {
     # Local parent: Species of the survivors
-    survivors_sp <- community$marks$PointType[-focus_tree]
+    survivors_sp <- marks(community)$PointType[-focus_tree]
     # Draw the species of the new tree
-    community$marks$PointType[focus_tree] <- 
-    survivors_sp[sample(seq_along(survivors_sp), size = 1)]
+    marks(community)$PointType[focus_tree] <- 
+      survivors_sp[sample(seq_along(survivors_sp), size = 1)]
   } else {
     # Migration : Draw the species of the new tree in the metacommunity
-    community$marks$PointType[focus_tree] <- 
+    marks(community)$PointType[focus_tree] <- 
       names(metacommunity)[which(rmultinom(1, size = 1, prob = metacommunity) == 1)]
   }
   # return
@@ -332,7 +334,7 @@ m <- 0.1
 # Copy the community to modify it
 the_community <- c_wmppp
 # Number of species
-richness <- length(unique(the_community$marks$PointType))
+richness <- length(unique(marks(the_community)$PointType))
 # Prepare a long vector to save the richness along time
 richness_time <- numeric(1E6)
 # Prepare a progress bar
@@ -341,7 +343,7 @@ for (step in seq_len(drift_time)) {
   # Replace a tree
   the_community <- evolve_migrate(the_community, mc_abundances, m)
   # Save the richness
-  richness_time[step] <- length(unique(the_community$marks$PointType))
+  richness_time[step] <- length(unique(marks(the_community)$PointType))
   # Show the progress
   if (interactive()) cli_progress_update()
 }
@@ -373,6 +375,8 @@ mean(richness_time[10000:drift_time])
 ```
 The equation for the expected number of species is in @Etienne2007 [eq. 4] but it requires knowing the size of the metacommunity.
 
+The minimum richness is `r min(richness_time[10000:drift_time])`.
+
 
 
 # Exercises
@@ -383,8 +387,8 @@ Re-use the code above to run a few experiments about drift time and the shape of
 
 From the BCI metacommunity, draw a local 1-ha community.
 Choose two immigration rates in turn: 0.1, as observed at BCI, and 0.01.
-Run a 50,000 steps and observe the final RAC.
-Compare the nuber of species with the actual value.
+Run 50,000 steps and observe the final RAC.
+Compare the number of species with the actual value.
 
 BCI data is available in package vegan.
 
