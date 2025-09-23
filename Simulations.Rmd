@@ -64,7 +64,7 @@ We'll draw random log-series distributions.
 #' @param alpha Fisher's alpha, that links the number of species to that of individuals
 #' @param show_progress Show a progress bar during long computations
 #'
-#' @return The number of individuals of a species
+#' @return The number of individuals per species
 rlseries <- function(
     n, 
     size, 
