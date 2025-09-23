@@ -14,7 +14,7 @@ output:
 InstallPackages <- function(Packages) {
   InstallPackage <- function(Package) {
     if (!Package %in% installed.packages()[, 1]) {
-      install.packages(Package, repos="https://cran.rstudio.com/")
+      install.packages(Package, repos = "https://cran.rstudio.com/")
     }
   }
   invisible(sapply(Packages, InstallPackage))
@@ -36,11 +36,12 @@ We want to build a species-rich metacommunity and a local, small community that 
 ## Species
 
 We will use letters to build the species names, e.g. "AAC".
-Combining 3 letters, we'll have $26^3 = 17576$ species napes, i.e. more than the number of species in Amazonia [@TerSteege2013].
+Combining 3 letters, we'll have $26^3 = 17576$ species names, i.e. more than the number of species in Amazonia [@TerSteege2013].
 
 To build the names, we use this code:
 
 ```{r}
+library("tidyverse")
 # LETTERS is the vector of capital letters A:Z
 # outer() combines the first two args by FUN
 LETTERS %>% 
