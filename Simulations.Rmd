@@ -46,9 +46,6 @@ knitr::opts_chunk$set(
   message = FALSE
 )
 
-# Load the tidyverse
-library("tidyverse")
-
 # Random seed
 set.seed(973)
 ```
@@ -177,7 +174,7 @@ evolve_drift <- function(community, show = FALSE) {
   # Choose a tree
   focus_tree <- sample(seq_len(community$n), size = 1)
   # Species of the survivors
-  survivors_sp <-  marks(community)$PointType[-focus_tree]
+  survivors_sp <- marks(community)$PointType[-focus_tree]
   # Draw the species of the new tree
   marks(community)$PointType[focus_tree] <- 
     survivors_sp[sample(seq_along(survivors_sp), size = 1)]
@@ -233,7 +230,7 @@ autoplot(the_community)
 # Plot the decreasing richness
 data.frame(Time = seq_len(step), Richness = richness_time[seq_len(step)]) %>% 
   ggplot() +
-    geom_line(aes(x = Time, y = Richness))
+  geom_line(aes(x = Time, y = Richness))
 ```
 
 # Immigration
@@ -247,7 +244,7 @@ The evolution function is rewritten.
 #' One-step evolution of a community with migration
 #'
 #' @param community A wmppp object (package dbmss) where points are trees.
-#' @param metacommunity A named vector of abundances or probability that describes the metacommunity.
+#' @param metacommunity A species_distribution object (package divent) that describes the metacommunity.
 #' @param m The migration parameter, that is the probability for a dead tree to be replaced by an immigrant species.
 #'
 #' @return A wmppp object with the modified community.
@@ -263,11 +260,15 @@ evolve_migrate <- function(community, metacommunity, m = 0) {
     marks(community)$PointType[focus_tree] <- 
       survivors_sp[sample(seq_along(survivors_sp), size = 1)]
   } else {
-    # Migration : Draw the species of the new tree in the metacommunity
-    marks(community)$PointType[focus_tree] <- 
-      names(metacommunity)[
-        which(rmultinom(1, size = 1, prob = as.numeric(metacommunity)) == 1)
-      ]
+    # Metacommunity species names
+    sp_names <- colnames(prob_species(metacommunity))
+    # Metacommunity species abundances
+    sp_abd <- as.numeric(metacommunity)
+    # Draw a species in the metacommunity:
+    # a vector of species abd with a single non-zero value
+    mc_1_tree <- rmultinom(1, size = 1, prob = sp_abd)
+    # Set the new species
+    marks(community)$PointType[focus_tree] <- sp_names[mc_1_tree]
   }
   # return
   return(community)
@@ -282,10 +283,8 @@ m <- 0.1
 
 # Copy the community to modify it
 the_community <- c_wmppp
-# Number of species
-richness <- length(unique(marks(the_community)$PointType))
 # Prepare a long vector to save the richness along time
-richness_time <- numeric(1E6)
+richness_time <- numeric(drift_time)
 # Prepare a progress bar
 if (interactive()) {
   cli_progress_bar(paste("Migration", m, ":"), total = drift_time)
@@ -299,27 +298,25 @@ for (step in seq_len(drift_time)) {
   if (interactive()) cli_progress_update()
 }
 autoplot(the_community)
-# Plot richness
+```
+
+```{r}
+# Plot richness along time
 data.frame(
   Time = seq_len(drift_time), 
-  Richness = richness_time[seq_len(drift_time)]
+  Richness = richness_time
   ) %>% 
   ggplot() +
   geom_line(aes(x = Time, y = Richness))
+```
+
+```{r}
 # Plot the rank-abundance curve
 the_community %>% 
-  # Consider the dataframe of marks
-  marks() %>% 
-  # Group by species
-  group_by(PointType) %>% 
-  # Count the numnber of individuals by species
-  summarise(Abundance = n()) %>% 
-  # Extract the column 
-  pull(Abundance) %>% 
-  # Make it an abundance vector (package divent)
+  # Make it an abundance object (package divent)
   as_abundances() %>% 
   # Plot the rank-abundance curve and try to fit a log-normal distribution
-  autoplot(distribution = "lnorm")
+  autoplot(distribution = "lnorm", fit_rac = TRUE)
 ```
 
 The average number of species can be calculated from the data, after eliminating the burn-in steps (i.e. before the pattern is stable).
@@ -357,7 +354,7 @@ rowSums(BCI)
 rowSums(BCI > 0)
 # RAC of plot 1
 BCI[1, ] %>%
-  as.AbdVector() %>% 
+  as_abundances %>% 
   autoplot()
 ```
 
@@ -372,7 +369,7 @@ Compare your results with figure 4.12 (page 106) of @Hubbell2001.
 
 ```{r}
 # Hint
-rCommunity(1, size = 256) %>% 
+rcommunity(1, size = 256) %>% 
   autoplot()
 ```
 
