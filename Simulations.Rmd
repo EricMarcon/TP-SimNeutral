@@ -184,7 +184,9 @@ evolve_drift <- function(community, show = FALSE) {
     # Increase the size of the modified tree
     marks(community_to_plot)$PointWeight[focus_tree] <- 2
     # Plot the community (print is mandatory inside a function)
-    print(autoplot(community_to_plot))
+    print(
+      autoplot(community_to_plot) + labs(colour = "Species", size = "Size")
+    )
   }
   # return
   return(community)
@@ -192,8 +194,7 @@ evolve_drift <- function(community, show = FALSE) {
 
 # Test the function
 c_wmppp %>% 
-  evolve_drift(show = TRUE) +
-  theme(legend.position = "none")
+  evolve_drift(show = TRUE)
 ```
 
 Drift causes the local extinction of all species but one.
