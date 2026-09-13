@@ -22,7 +22,7 @@ InstallPackages <- function(Packages) {
 # Basic packages
 InstallPackages(c("bookdown", "formatR", "tidyverse"))
 # Specific packages
-InstallPackages(c("cli", "entropart", "dbmss", "vegan"))
+InstallPackages(c("cli", "divent", "dbmss", "vegan"))
 # knitr options
 knitr::opts_chunk$set(echo = TRUE, cache = TRUE, message = FALSE)
 # Load the tidyverse
@@ -51,73 +51,6 @@ LETTERS %>%
   species_names
 ```
 
-## Metacomunity
-
-We'll draw random log-series distributions.
-
-```{r}
-#' Random draw of a log-series distribution
-#' The complete set of functions (including density, distribution function and quantiles)
-#' can be found in package _sads_ but this implementation of the random generation is much faster.
-#'
-#' @param n The Number of species
-#' @param size The size of the distribution.
-#' @param alpha Fisher's alpha, that links the number of species to that of individuals
-#' @param show_progress Show a progress bar during long computations
-#'
-#' @return The number of individuals per species
-rlseries <- function(
-    n, 
-    size, 
-    alpha, 
-    show_progress = TRUE) {
-  # adapted from Dan Lunn, http://www.stats.ox.ac.uk/~dlunn/BS1_05/BS1_Rcode.pdf
-  if (size + 1 == size || size - 1 == size) {
-    # Too large values to deal with as integers
-    stop("size is too large to simulate the distribution.")
-  }
-  # Fisher's x
-  x <- size / (size + alpha)
-  # Draw random numbers between 0 and 1 that are quantiles of the cumulative function
-  u <- sort(stats::runif(n))
-  # Prepare the corresponding number of abundances
-  abd <- numeric(n)
-  # Prepare a progress bar
-  if (show_progress & interactive()) {
-    cli::cli_progress_bar(
-      total = n,
-      format = "{cli::pb_spin} Drawing log-series values {cli::pb_current}/{cli::pb_total}"
-    )
-  }
-  # Number of drawn values +1
-  next_value <- 1
-  # k is the abundance
-  k <- 1
-  # Calculate the probability at k=1
-  P <- -x / log(1 - x)
-  # Store it in the cumulative function
-  F <- P
-  # Repeat while all values are not drawn
-  while (next_value <= n) {
-    if (F > u[next_value]) {
-      # Retain k as the next value
-      abd[next_value] <- k
-      # Increment the next value
-      next_value <- next_value + 1
-      # Update the progress bar
-      if (show_progress & interactive()) cli::cli_progress_update()
-    } else {
-      # Probability at k+1 obtained from that at k
-      P <- P * k * x / (k + 1)
-      # Increment the cumulated probability
-      F <- F + P
-      # Increment k
-      k <- k + 1
-    }
-  }
-  return(abd)
-}
-```
 
 ## Barro Colorado Island
 
@@ -141,21 +74,27 @@ The metacommunity contains `r n_species` species.
 We simulate their abundances.
 
 ```{r}
-library("cli")
-# Prepare a progress bar
-mc_abundances <- rlseries(n = n_species, size = mc_size, alpha = alpha)
-
-# Set the species names
-names(mc_abundances) <- species_names[seq_along(mc_abundances)]
-
-# Declare it is a vector of abundances (package entropart)
-library("entropart")
-mc_abundances %>% 
-  as.AbdVector() ->
+library("divent")
+rcommunity(
+  # Simulate a single community
+  1,
+  # Number of trees
+  size = mc_size,
+  # Distribution: log-series
+  distribution = "lseries",
+  # Parameter
+  fisher_alpha = alpha
+) %>% 
+  # Set the species names 
+  rename_with(
+    # Function of the selected columns: 
+    # return a subset of the species names vector
+    function(x) species_names[seq_along(x)],
+    # Select columns with species names
+    starts_with("sp_")
+  ) ->
   mc_abundances
 
-# Range
-summary(mc_abundances)
 # Rank-Abundance Curve
 autoplot(mc_abundances, Distribution = "lseries")
 ```
@@ -163,57 +102,39 @@ autoplot(mc_abundances, Distribution = "lseries")
 ## Local community
 
 We draw a local community from the metacommunity.
+We give random positions to the trees in a square window to be able to see them later.
 
 ```{r}
 # Choose the size of the community
 c_size <- 256
 # Draw a random community according to the abundances of the metacommunity
-rmultinom(1, size = c_size, prob = mc_abundances) %>% 
-  # We need a vector, not a matrix
-  as.vector() ->
-  c_abundances
-# Give the species a name
-names(c_abundances) <- names(mc_abundances)
-library("entropart")
-# Clean-up the data
-c_abundances %>% 
-  # Eliminate species with 0 individual
-  subset(c_abundances > 0) %>% 
-  # Declare a vector of abundances
-  as.AbdVector() ->
-  c_abundances
+rspcommunity(
+  # Draw 1 community
+  1,
+  # Number of trees
+  size = c_size,
+  # Metacommunity abundances, must be a vector
+  abd = as.numeric(mc_abundances),
+  # Draw a multinomial distribution
+  bootstrap = "Marcon2012",
+  # Random location
+  spatial = "Binomial"
+  ) ->
+  # The result is a weighted, marked, planar point pattern
+  c_wmppp
+
 # Show the RAC
-autoplot(c_abundances)
+c_wmppp %>% 
+  # Make it an abundances object
+  as_abundances() %>% 
+  autoplot()
 ```
 
 # Demographic drift
 
-We set an arbitrary position to the trees of the local community just to visualize it.
+## Map the point pattern
 
 ```{r}
-library("dbmss")
-# Build a dataframe for the marks of a point pattern
-marks <- data.frame(
-  # Species. Each line of the dataframe is an individual
-  PointType = rep(names(c_abundances), times = c_abundances), 
-  # Size of the points
-  PointWeight = rep(1, c_size)
-)
-# Draw random locations in a square window to obtain a point pattern
-c_size %>% 
-  runifpoint() ->
-  c_ppp
-# Add the marks to the point pattern
-marks(c_ppp) <- marks
-# Make it a wmppp object (package dbmss) to make nice plots
-c_wmppp <- as.wmppp(c_ppp)
-# Set the factor levels of the point types identical to those of the metacommunity
-# so that species of the metacommunity can be used in the local community
-marks(c_wmppp)$PointType <- factor(
-  marks(c_wmppp)$PointType, 
-  levels = names(mc_abundances)
-)
-# Map the point pattern
 autoplot(c_wmppp) +
   labs(colour = "Species", size = "Size")
 ```
@@ -221,6 +142,7 @@ autoplot(c_wmppp) +
 The drift model is as follows: at each step, a tree dies and is replaced by a new tree from the species of the community, with respect to their probabilities.
 
 ```{r}
+library("dbmss")
 #' One-step evolution of a community without migration
 #'
 #' @param community A wmppp object (package dbmss) where points are trees.
@@ -231,7 +153,7 @@ evolve_drift <- function(community, show = FALSE) {
   # Choose a tree
   focus_tree <- sample(seq_len(community$n), size = 1)
   # Species of the survivors
-  survivors_sp <- marks(community)$PointType[-focus_tree]
+  survivors_sp <-  marks(community)$PointType[-focus_tree]
   # Draw the species of the new tree
   marks(community)$PointType[focus_tree] <- 
     survivors_sp[sample(seq_along(survivors_sp), size = 1)]
@@ -249,7 +171,8 @@ evolve_drift <- function(community, show = FALSE) {
 
 # Test the function
 c_wmppp %>% 
-  evolve_drift(show = TRUE)
+  evolve_drift(show = TRUE) +
+  theme(legend.position = "none")
 ```
 
 Drift causes the local extinction of all species but one.
@@ -318,7 +241,9 @@ evolve_migrate <- function(community, metacommunity, m = 0) {
   } else {
     # Migration : Draw the species of the new tree in the metacommunity
     marks(community)$PointType[focus_tree] <- 
-      names(metacommunity)[which(rmultinom(1, size = 1, prob = metacommunity) == 1)]
+      names(metacommunity)[
+        which(rmultinom(1, size = 1, prob = as.numeric(metacommunity)) == 1)
+      ]
   }
   # return
   return(community)
@@ -338,7 +263,9 @@ richness <- length(unique(marks(the_community)$PointType))
 # Prepare a long vector to save the richness along time
 richness_time <- numeric(1E6)
 # Prepare a progress bar
-if (interactive()) cli_progress_bar(paste("Migration", m, ":"), total = drift_time)
+if (interactive()) {
+  cli_progress_bar(paste("Migration", m, ":"), total = drift_time)
+}
 for (step in seq_len(drift_time)) {
   # Replace a tree
   the_community <- evolve_migrate(the_community, mc_abundances, m)
@@ -349,9 +276,12 @@ for (step in seq_len(drift_time)) {
 }
 autoplot(the_community)
 # Plot richness
-data.frame(Time = seq_len(drift_time), Richness = richness_time[seq_len(drift_time)]) %>% 
+data.frame(
+  Time = seq_len(drift_time), 
+  Richness = richness_time[seq_len(drift_time)]
+  ) %>% 
   ggplot() +
-    geom_line(aes(x = Time, y = Richness))
+  geom_line(aes(x = Time, y = Richness))
 # Plot the rank-abundance curve
 the_community %>% 
   # Consider the dataframe of marks
