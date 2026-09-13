@@ -261,14 +261,14 @@ evolve_migrate <- function(community, metacommunity, m = 0) {
       survivors_sp[sample(seq_along(survivors_sp), size = 1)]
   } else {
     # Metacommunity species names
-    sp_names <- colnames(prob_species(metacommunity))
+    sp_names <- colnames(abd_species(metacommunity))
     # Metacommunity species abundances
     sp_abd <- as.numeric(metacommunity)
     # Draw a species in the metacommunity:
-    # a vector of species abd with a single non-zero value
+    # a vector of species abd with a single value 1
     mc_1_tree <- rmultinom(1, size = 1, prob = sp_abd)
     # Set the new species
-    marks(community)$PointType[focus_tree] <- sp_names[mc_1_tree]
+    marks(community)$PointType[focus_tree] <- sp_names[mc_1_tree == 1]
   }
   # return
   return(community)
@@ -369,7 +369,7 @@ Compare your results with figure 4.12 (page 106) of @Hubbell2001.
 
 ```{r}
 # Hint
-rcommunity(1, size = 256) %>% 
+rcommunity(1, size = 256, species_number = 10) %>% 
   autoplot()
 ```
 
