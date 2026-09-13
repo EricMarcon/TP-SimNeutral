@@ -9,24 +9,48 @@ output:
     toc_float: true
 ---
 
-```{r setup, include=FALSE}
-# Installation of packages if necessary
-InstallPackages <- function(Packages) {
-  InstallPackage <- function(Package) {
-    if (!Package %in% installed.packages()[, 1]) {
-      install.packages(Package, repos = "https://cran.rstudio.com/")
-    }
-  }
-  invisible(sapply(Packages, InstallPackage))
-}
-# Basic packages
-InstallPackages(c("bookdown", "formatR", "tidyverse"))
-# Specific packages
-InstallPackages(c("cli", "divent", "dbmss", "vegan"))
+```{r}
+#| label: Setup
+#| include: false
+
+# Packages to install
+packages_required <- c(
+  # Tools, do not remove them
+  "bookdown", 
+  "formatR", 
+  "tidyverse", 
+  # Specific packages
+  "cli", 
+  "divent", 
+  "vegan"
+)
+
+# Already installed?
+packages_installed <- vapply(
+  packages_required, 
+  FUN = requireNamespace, 
+  FUN.VALUE = TRUE, 
+  quietly = TRUE
+) 
+# Install missing packages
+install.packages(
+  names(packages_installed)[!packages_installed],
+  repos = "https://cran.rstudio.com/",
+  quiet = TRUE
+)
+
 # knitr options
-knitr::opts_chunk$set(echo = TRUE, cache = TRUE, message = FALSE)
+knitr::opts_chunk$set(
+  echo = TRUE, 
+  cache = TRUE, 
+  message = FALSE
+)
+
 # Load the tidyverse
 library("tidyverse")
+
+# Random seed
+set.seed(973)
 ```
 
 # Data and tools
@@ -292,10 +316,10 @@ the_community %>%
   summarise(Abundance = n()) %>% 
   # Extract the column 
   pull(Abundance) %>% 
-  # Make it an abundance vector (package entropart)
-  as.AbdVector() %>% 
+  # Make it an abundance vector (package divent)
+  as_abundances() %>% 
   # Plot the rank-abundance curve and try to fit a log-normal distribution
-  autoplot(Distribution = "lnorm")
+  autoplot(distribution = "lnorm")
 ```
 
 The average number of species can be calculated from the data, after eliminating the burn-in steps (i.e. before the pattern is stable).
